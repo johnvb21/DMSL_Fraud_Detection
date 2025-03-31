@@ -1,7 +1,7 @@
 import json
 import joblib
 import pandas as pd
-import EDA_pipeline
+import EDA_Pipeline
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import (
