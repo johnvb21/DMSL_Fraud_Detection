@@ -3,7 +3,7 @@ from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import make_scorer
 from scipy.stats import uniform, randint
 import xgboost as xgb
-import EDA_pipeline
+import EDA_Pipeline
 import json
 import joblib
 
