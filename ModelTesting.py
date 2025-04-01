@@ -16,7 +16,7 @@ with open("best_params.json", "r") as f:
     best_params = json.load(f)
 
 # 2. Load and preprocess test set
-df_test = EDA_Pipeline.process_fraud_data(getcwd() + "Data/fraudTest.csv")
+df_test = EDA_Pipeline.process_fraud_data(getcwd() + "/Data/fraudTest.csv")
 X_test = df_test.drop(columns=["is_fraud"])
 y_test = df_test["is_fraud"]
 

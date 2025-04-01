@@ -10,7 +10,7 @@ from os import getcwd
 
 
 # 1. Load and preprocess data
-df = EDA_Pipeline.process_fraud_data(getcwd() + "Data/fraudTrain.csv")
+df = EDA_Pipeline.process_fraud_data(getcwd() + "/Data/fraudTrain.csv")
 X = df.drop(columns=['is_fraud'])
 y = df['is_fraud']
 
