@@ -1,0 +1,13 @@
+# Mac OS Files
+.DS_Store
+
+# Python
+__pycache__
+
+# Outputs
+.idea/
+*.json
+*.pkl
+
+# Data
+Data/

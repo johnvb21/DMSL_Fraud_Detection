@@ -9,13 +9,14 @@ from sklearn.metrics import (
     f1_score, roc_auc_score, confusion_matrix, classification_report
 )
 import xgboost as xgb
+from os import getcwd
 
 # 1. Load best hyperparameters from file
 with open("best_params.json", "r") as f:
     best_params = json.load(f)
 
 # 2. Load and preprocess test set
-df_test = EDA_pipeline.process_fraud_data("fraudTest.csv")
+df_test = EDA_Pipeline.process_fraud_data(getcwd() + "Data/fraudTest.csv")
 X_test = df_test.drop(columns=["is_fraud"])
 y_test = df_test["is_fraud"]
 
