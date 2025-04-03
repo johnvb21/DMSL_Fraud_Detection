@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
+from imblearn.over_sampling import SMOTE
 
 
 def haversine_vectorized(lat1, lon1, lat2, lon2):
@@ -60,3 +61,9 @@ def process_fraud_data(file_path):
         df[col] = le.fit_transform(df[col])
 
     return df
+
+
+def oversample(X, y):
+    smote = SMOTE(random_state=42)
+    X_new, y_new = smote.fit_resample(X, y)
+    return X_new, y_new
