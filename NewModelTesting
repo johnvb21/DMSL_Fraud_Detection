@@ -1,0 +1,91 @@
+import pandas as pd
+from scipy.sparse import csr_matrix
+from sklearn.svm import LinearSVC
+from sklearn.model_selection import RandomizedSearchCV
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score,
+    f1_score, roc_auc_score, confusion_matrix, classification_report
+)
+import json
+import joblib
+import os
+import sys
+
+# Import custom modules 
+sys.path.append('C:/Users/thund/Documents/GitHub/DMSL_Fraud_Detection')
+import EDA_Pipeline_BTE
+import importlib
+importlib.reload(EDA_Pipeline_BTE)
+import Test_Data_Pipeline
+import importlib
+importlib.reload(Test_Data_Pipeline)
+
+"""
+1. Load Model and Preprocess Test Data
+"""
+
+test_df = pd.read_csv('C:/Users/thund/Desktop/HW/DMSL/FraudPrediction/fraudTest.csv')
+
+# Associate BTE and TE values to classes and prepare to map to test data
+train_df = EDA_Pipeline_BTE.process_fraud_data('C:/Users/thund/Desktop/HW/DMSL/FraudPrediction/fraudTrain.csv')
+BTE_cols = ['city', 'job', 'cc_num', 'state']
+TE_cols = ['merchant', 'category']
+mappings = Test_Data_Pipeline.Extract_Mappings(train_df, BTE_cols, TE_cols, target_col='is_fraud')
+
+# Define input and output for the model
+y_test = test_df['is_fraud']
+# Apply identical transformations to test data prior to model prediction
+X_test = Test_Data_Pipeline.process_test_data('C:/Users/thund/Desktop/HW/DMSL/FraudPrediction/fraudTest.csv', mappings, BTE_cols, TE_cols) # DON'T input test_df because the function tries to read the file, so input the file path instead
+
+# Load best hyperparameters from file
+with open("model_output/best_model_info.json", "r") as f:
+    best_params = json.load(f)
+
+model = joblib.load("model_output/svm_linear_model.pkl")
+
+
+"""
+Predict and Evaluate Performance
+"""
+
+y_proba = model.decision_function(X_test)  # LinearSVC uses decision_function for scores
+threshold = 0.05  # Default threshold for fraud classification
+y_pred = (y_proba > threshold).astype(int)
+
+# Evaluate performance
+print(f"\n📊 Performance on fraudTest.csv (Threshold = {threshold}):")
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("Precision:", precision_score(y_test, y_pred))
+print("Recall:   ", recall_score(y_test, y_pred))
+print("F1 Score: ", f1_score(y_test, y_pred))
+print("ROC AUC:  ", roc_auc_score(y_test, y_proba))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+"""
+Create Confusion Matrix and Utility Calculation
+"""
+
+# Confusion matrix and counts
+cm = confusion_matrix(y_test, y_pred)
+tn, fp, fn, tp = cm.ravel()
+
+print("🔍 Confusion Matrix Breakdown:")
+print(f"True Positives (TP):  {tp}")
+print(f"False Positives (FP): {fp}")
+print(f"False Negatives (FN): {fn}")
+print(f"True Negatives (TN):  {tn}")
+
+# Plot confusion matrix
+plt.figure(figsize=(6, 4))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.title(f"Confusion Matrix (Threshold = {threshold})")
+plt.tight_layout()
+plt.show()
+
+# Compute custom utility
+utility = (tp * 50) - (fn * 100) - (fp * 5)
+print(f"\n💰 Total Utility: {utility:,}")

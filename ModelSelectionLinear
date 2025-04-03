@@ -1,0 +1,71 @@
+import pandas as pd
+import scipy.sparse
+from scipy.sparse import csr_matrix
+from sklearn.svm import LinearSVC
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.utils.class_weight import compute_class_weight
+from sklearn.metrics import roc_auc_score
+import json
+import joblib
+import os
+import sys
+from sklearn.preprocessing import StandardScaler
+
+sys.path.append('C:/Users/thund/Documents/GitHub/DMSL_Fraud_Detection')
+import EDA_Pipeline_BTE
+import importlib
+importlib.reload(EDA_Pipeline_BTE)
+
+# Load and preprocess data
+df = EDA_Pipeline_BTE.process_fraud_data('C:/Users/thund/Desktop/HW/DMSL/FraudPrediction/fraudTrain.csv')
+X = df.drop(columns=['is_fraud'])
+y = df['is_fraud']
+
+scaler = StandardScaler()
+# Normalize the features
+X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns, index=X.index)# Normalize the features and convert back to DataFrame for consistency
+X = csr_matrix(X.values)  # Convert to sparse format
+
+# Define LinearSVC and optimize hyperparameters
+svm_base = LinearSVC(max_iter=100000, dual=False, class_weight='balanced')  # Set dual=False for better performance on large datasets
+
+param_dist = {
+    'C': [0.01, 0.1, 1, 10, 100],  # Regularization parameter tuning
+}
+
+random_search = RandomizedSearchCV(
+    estimator=svm_base,
+    param_distributions=param_dist,
+    n_iter=len(param_dist['C']),  # Ensure all values of C are tested
+    scoring='roc_auc',
+    cv=5,
+    random_state=42,
+    n_jobs=-1,
+    verbose=1
+)
+
+# Convert sparse matrix to dense format for LinearSVC
+random_search.fit(X, y)
+
+# Retrieve best hyperparameters
+best_params = random_search.best_params_
+print(f"Best hyperparameters: {best_params}")
+
+# 3. Train final LinearSVC model with best hyperparameters
+svm_best = LinearSVC(C=best_params['C'], max_iter=100000, dual=False, class_weight='balanced')
+svm_best.fit(X, y)
+
+# 4. Save best model
+output_dir = 'model_output'
+os.makedirs(output_dir, exist_ok=True)
+
+# Save best hyperparameters to JSON
+model_info = {"Best Hyperparameters": best_params}
+with open(os.path.join(output_dir, "best_model_info.json"), "w") as f:
+    json.dump(model_info, f, indent=4)
+
+# Save the trained model
+joblib.dump(svm_best, os.path.join(output_dir, "svm_linear_model.pkl"))
+
+print("\n✅ Saved best hyperparameters to 'best_model_info.json'")
+print("📦 Saved trained LinearSVC model to 'svm_linear_model.pkl'")

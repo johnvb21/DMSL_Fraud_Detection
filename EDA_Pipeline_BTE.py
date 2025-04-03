@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+
+
 def haversine_vectorized(lat1, lon1, lat2, lon2):
     R = 3958.8  # Earth radius in miles
 
@@ -88,7 +90,7 @@ def process_fraud_data(file_path):
     df = df.drop(columns=drop_cols)
 
     # One-hot encoding for 'gender' and 'state'
-    df = pd.get_dummies(df, columns=['gender', 'state'])
+    df = pd.get_dummies(df, columns=['gender'])
     
     # Regular Target Encoding for merchant and category because there are no underrepresented classes 
         # Calculate the means
@@ -99,7 +101,7 @@ def process_fraud_data(file_path):
     df['category'] = df['category'].map(cat_mean)
     
     # Apply Bayesian Target Encoding to high cardinality features with underrepresented classes
-    BTE_cols = ['city','job',"cc_num"]
+    BTE_cols = ['city','job',"cc_num",'state']
     df = bayesian_target_encode(df, BTE_cols, target_col='is_fraud', alpha=10)
 
     # Convert Boolean Values to Integers
