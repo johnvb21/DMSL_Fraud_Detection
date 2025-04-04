@@ -3,6 +3,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from sklearn.preprocessing import StandardScaler
 
+
 # Function for extracting mappings
 def Extract_Mappings(train_df, BTE_cols, TE_cols, target_col='is_fraud', alpha=10):
     """
@@ -107,7 +108,7 @@ def process_test_data(file_path, mappings, BTE_cols, TE_cols):
     # Normalize the features and convert back to DataFrame for consistency
     scaler = StandardScaler()
     df = pd.DataFrame(scaler.fit_transform(df), columns=df.columns, index=df.index)
-    
+
     # Convert to sparse matrix
     Test_Prepped_Data = csr_matrix(df.values)
 

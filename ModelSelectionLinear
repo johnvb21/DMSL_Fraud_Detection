@@ -10,6 +10,8 @@ import joblib
 import os
 import sys
 from sklearn.preprocessing import StandardScaler
+from imblearn.over_sampling import SMOTE
+
 
 sys.path.append('C:/Users/thund/Documents/GitHub/DMSL_Fraud_Detection')
 import EDA_Pipeline_BTE
@@ -22,10 +24,14 @@ X = df.drop(columns=['is_fraud'])
 y = df['is_fraud']
 
 scaler = StandardScaler()
-# Normalize the features
-X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns, index=X.index)# Normalize the features and convert back to DataFrame for consistency
-X = csr_matrix(X.values)  # Convert to sparse format
+# Normalize the features, resample and convert back to DataFrame for consistency
+X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns, index=X.index)
 
+#Resample the data using SMOTE
+smote = SMOTE(random_state=42)
+X, y = smote.fit_resample(X, y)
+
+X = csr_matrix(X.values)  # Convert to sparse format
 # Define LinearSVC and optimize hyperparameters
 svm_base = LinearSVC(max_iter=100000, dual=False, class_weight='balanced')  # Set dual=False for better performance on large datasets
 

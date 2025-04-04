@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from scipy.sparse import csr_matrix
 from sklearn.svm import LinearSVC
 from sklearn.model_selection import RandomizedSearchCV
@@ -51,8 +52,9 @@ Predict and Evaluate Performance
 """
 
 y_proba = model.decision_function(X_test)  # LinearSVC uses decision_function for scores
-threshold = 0.05  # Default threshold for fraud classification
+threshold = .01  # Default threshold for fraud classification
 y_pred = (y_proba > threshold).astype(int)
+
 
 # Evaluate performance
 print(f"\n📊 Performance on fraudTest.csv (Threshold = {threshold}):")

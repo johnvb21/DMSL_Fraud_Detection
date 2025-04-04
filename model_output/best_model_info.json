@@ -1,5 +1,5 @@
 {
     "Best Hyperparameters": {
-        "C": 0.01
+        "C": 100
     }
 }
