@@ -37,8 +37,8 @@ mappings = Test_Data_Pipeline.Extract_Mappings(train_df, BTE_cols, TE_cols, targ
 
 # Define input and output for the model
 y_test = test_df['is_fraud']
-# Apply identical transformations to test data prior to model prediction
-X_test = Test_Data_Pipeline.process_test_data('C:/Users/thund/Desktop/HW/DMSL/FraudPrediction/fraudTest.csv', mappings, BTE_cols, TE_cols) # DON'T input test_df because the function tries to read the file, so input the file path instead
+# Apply identical transformations to test data prior to model prediction. DON'T input test_df because the function tries to read the file, so input the file path instead
+X_test = Test_Data_Pipeline.process_test_data('C:/Users/thund/Desktop/HW/DMSL/FraudPrediction/fraudTest.csv', mappings, BTE_cols, TE_cols)
 
 # Load best hyperparameters from file
 with open("model_output/best_model_info.json", "r") as f:

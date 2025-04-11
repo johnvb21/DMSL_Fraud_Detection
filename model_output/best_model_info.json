@@ -1,5 +1,8 @@
 {
-    "Best Hyperparameters": {
-        "C": 100
-    }
+    "best_kernel": "rbf",
+    "best_params": {
+        "gamma": "scale",
+        "C": 1
+    },
+    "best_score": 0.9286027865903946
 }

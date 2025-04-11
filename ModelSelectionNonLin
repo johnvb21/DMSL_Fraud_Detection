@@ -1,0 +1,95 @@
+import pandas as pd
+import scipy.sparse
+from scipy.sparse import csr_matrix
+from sklearn.svm import SVC
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.utils.class_weight import compute_class_weight
+from sklearn.metrics import roc_auc_score
+import json
+import joblib
+import os
+import sys
+from sklearn.preprocessing import StandardScaler
+
+sys.path.append('C:/Users/thund/Documents/GitHub/DMSL_Fraud_Detection')
+import NonLin_Pipeline
+import importlib
+importlib.reload(NonLin_Pipeline)
+
+# Load and preprocess data
+df = NonLin_Pipeline.process_fraud_data('C:/Users/thund/Desktop/HW/DMSL/FraudPrediction/fraudTrain.csv')
+X = df.drop(columns=['is_fraud'])
+y = df['is_fraud']
+len(y)
+scaler = StandardScaler()
+# Normalize the features, resample and convert back to DataFrame for consistency
+X = pd.DataFrame(scaler.fit_transform(X), columns=X.columns, index=X.index)
+
+# Define SVC with RBF kernel
+kernel_param_grids = {
+    'poly': {
+        'C': [0.01, 0.1, 1, 10],
+        'degree': [2, 3, 4, 5],  # Polynomial degree
+        'gamma': ['scale', 'auto', 0.1, 1]
+    },
+    'rbf': {
+        'C': [0.01, 0.1, 1, 10, 100],
+        'gamma': ['scale', 'auto', 0.01, 0.1, 1, 10]
+    },
+    'sigmoid': {
+        'C': [0.01, 0.1, 1, 10],
+        'gamma': ['scale', 'auto', 0.01, 0.1, 1, 10]
+    }
+}
+
+results = {}  # Store results for each kernel
+
+# Iterate through kernels and optimize
+for kernel, param_grid in kernel_param_grids.items():
+    print(f"\nOptimizing {kernel} kernel...")
+    
+    # Define the SVC model with the current kernel
+    svm_model = SVC(kernel=kernel, class_weight='balanced', probability=True)
+    
+    # Set up RandomizedSearchCV
+    random_search = RandomizedSearchCV(
+        estimator=svm_model,
+        param_distributions=param_grid,
+        n_iter=10,  # Number of parameter combinations to test
+        scoring='roc_auc',
+        cv=5,
+        random_state=42,
+        n_jobs=-1,
+        verbose=1
+    )
+    
+    # Convert data to dense format if sparse
+    random_search.fit(X, y)  # Ensure proper computation
+    
+    # Store best results
+    results[kernel] = {
+        "best_params": random_search.best_params_,
+        "best_score": random_search.best_score_
+    }
+
+    print(f"Best parameters for {kernel} kernel: {results[kernel]['best_params']}")
+    print(f"Best ROC AUC score for {kernel} kernel: {results[kernel]['best_score']}")
+
+# Train final SVC model with best hyperparameters
+svm_best = SVC(C=best_params['C'], gamma=best_params['gamma'], kernel='rbf', class_weight='balanced', probability=True)
+svm_best.fit(X, y)
+
+# Save best model
+output_dir = 'model_output'
+os.makedirs(output_dir, exist_ok=True)
+
+# Save best hyperparameters to JSON
+model_info = {"Best Hyperparameters": best_params}
+with open(os.path.join(output_dir, "best_model_info.json"), "w") as f:
+    json.dump(model_info, f, indent=4)
+
+# Save the trained model
+joblib.dump(svm_best, os.path.join(output_dir, "svm_nonlin_model.pkl"))
+
+print("\n✅ Saved best hyperparameters to 'best_model_info.json'")
+print("📦 Saved trained RBF SVM model to 'svm_nonlin_model.pkl'")
