@@ -6,12 +6,13 @@ from EDA_Pipeline import process_fraud_data, oversample
 from os import getcwd
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score,
-    f1_score, roc_auc_score, confusion_matrix, classification_report
+    f1_score, roc_auc_score, confusion_matrix, classification_report,
+    roc_curve, auc, precision_recall_curve, average_precision_score
 )
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import StratifiedKFold
-# from PCA import perform_PCA
+from PCA import perform_PCA
 
 
 def load_data(path):
@@ -23,7 +24,7 @@ def load_data(path):
     # print(f"Total Data: {len(y)}")
     # print(f"Fraud Cases: {np.count_nonzero(y)}")
     # print(f"Percent Fraud: {np.count_nonzero(y) / len(y) * 100:.4f}%\n")
-    
+
     # Standardize features using z-scores
     scaler = StandardScaler()
     X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns)
@@ -33,24 +34,12 @@ def load_data(path):
     return X_scaled, y
 
 
-# def normalize_numerical_columns(X):
-#     df_normalized = X.copy()
-#     for col in X.select_dtypes(include=['number']).columns:
-#         min_val = X[col].min()
-#         max_val = X[col].max()
-#         if min_val != max_val:  # Avoid division by zero
-#             df_normalized[col] = (X[col] - min_val) / (max_val - min_val)
-#         else:
-#             df_normalized[col] = 0  # Set to 0 if all values are the same
-#     return df_normalized
-
-
 def backward_elimination(X, y, threshold=0.05):
-    X = X.copy()  # Avoid modifying the original dataframe
+    X = X.copy()
     while True:
-        model = sm.Logit(y, X).fit(disp=0)  # Fit logistic regression
-        p_values = model.pvalues[1:]  # Exclude intercept
-        max_p_value = p_values.max()  # Find max p-value
+        model = sm.Logit(y, X).fit(disp=0)
+        p_values = model.pvalues[1:]
+        max_p_value = p_values.max()
         
         if max_p_value < threshold:
             break  # Stop if all p-values are below threshold
@@ -75,11 +64,9 @@ def cross_validation(X, y, n_splits=5, threshold=0.85):
         
         # Perform backward elimination on training set
         X_selected, model = backward_elimination(X_train, y_train)
-        # model = sm.Logit(y_train, X_train).fit(disp=0)
 
         # Ensure validation data has the same selected features
         X_val = X_val[X_selected.columns]
-        # X_val = X_val[X_train.columns]
 
         # Make predictions
         y_pred = (model.predict(X_val) >= threshold).astype(int)
@@ -92,7 +79,6 @@ def cross_validation(X, y, n_splits=5, threshold=0.85):
             best_accuracy = accuracy
             best_model = model
             best_features = X_selected.columns  # Save selected features
-            # best_features = X_train.columns
 
     print(f"\n✅ Best Model Accuracy: {best_accuracy:.4f}\n")
     return best_model, best_features
@@ -102,26 +88,26 @@ def main():
     # Load and preprocess data
     X_train, y_train = load_data("/Data/fraudTrain.csv")
     X_train, y_train = oversample(X_train, y_train)
-    # pca, X_train, _ = perform_PCA(X_train, n_components=15)
+
+    # pca, X_train, _ = perform_PCA(X_train, n_components=13)
     
     # Perform backward elimination
-    # X_selected, final_model = backward_elimination(X_train, y_train)
     final_model, selected_features = cross_validation(X_train, y_train)
-    # final_model, selected_features = cross_validation(X_selected, y_train)
-    
+
     # Print selected features
     print("Selected Features:")
     for f in selected_features:
         print(f)
     print()
 
-    threshold = 0.95
+    threshold = 0.69  # -38,190
 
     X_test, y_test = load_data("/Data/fraudTest.csv")
-    # X_test = X_test[selected_features]
     # X_test = pd.DataFrame(pca.transform(X_test))
     X_test = X_test[selected_features]
-    y_pred = (final_model.predict(X_test) >= threshold).astype(int)
+    y_prob = final_model.predict(X_test)
+    y_pred = (y_prob >= threshold).astype(int)
+
 
     test_accuracy = accuracy_score(y_test, y_pred)
     print(f"\n✅ Test Accuracy: {test_accuracy * 100:.2f}%\n")
@@ -132,6 +118,7 @@ def main():
     print("Precision:", precision_score(y_test, y_pred))
     print("Recall:   ", recall_score(y_test, y_pred))
     print("F1 Score: ", f1_score(y_test, y_pred))
+    print("ROC AUC Score: ", roc_auc_score(y_test, y_prob))
     print("\nClassification Report:\n", classification_report(y_test, y_pred))
 
     # Confusion matrix and counts
@@ -155,6 +142,31 @@ def main():
     plt.ylabel("Actual")
     plt.title(f"Confusion Matrix")
     plt.tight_layout()
+    plt.show()
+
+
+    # ROC Curve
+    fpr, tpr, _ = roc_curve(y_test, y_prob)
+    roc_auc = auc(fpr, tpr)
+
+    plt.plot(fpr, tpr, label=f'AUC = {roc_auc:.2f}')
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('ROC Curve')
+    plt.legend()
+    plt.show()
+
+
+    # Precision-Recall Curve
+    precision, recall, _ = precision_recall_curve(y_test, y_prob)
+    ap = average_precision_score(y_test, y_prob)
+
+    plt.plot(recall, precision, label=f'AP = {ap:.2f}')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Precision-Recall Curve')
+    plt.legend()
     plt.show()
 
     
